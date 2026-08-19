@@ -10,88 +10,53 @@
         .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 12px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); border-top: 5px solid #a90432; }
         .logo { width: 85px; display: block; margin: 0 auto 10px auto; }
         h1 { color: #a90432; text-align: center; margin-bottom: 5px; margin-top: 0; }
-        p.subtitle { text-align: center; color: #fdb912; font-weight: bold; margin-top: 0; }
-        .tweet { border-bottom: 1px solid #eee; padding: 15px 0; animation: fadeIn 0.5s ease-in; }
-        .tweet:first-child { border-top: 1px solid #eee; }
-        .tweet-header { display: flex; justify-content: space-between; margin-bottom: 8px; }
-        .author { font-weight: bold; color: #0f1419; }
-        .username, .time { color: #536471; font-size: 0.9em; }
-        .content { color: #0f1419; font-size: 1.1em; line-height: 1.4; }
-        @keyframes fadeIn { from { background-color: #fff9e6; opacity: 0; transform: translateY(-10px); } to { background-color: transparent; opacity: 1; transform: translateY(0); } }
-        button { background-color: #a90432; color: white; border: none; padding: 10px 15px; border-radius: 20px; cursor: pointer; display: block; margin: 0 auto 20px auto; font-weight: bold; transition: 0.3s; }
-        button:hover { background-color: #8a0329; }
-        /* Aktif olduğunda butonun bürüneceği yeşil renk */
-        .btn-aktif { background-color: #2e7d32 !important; } 
+        button { background-color: #a90432; color: white; border: none; padding: 12px 20px; border-radius: 20px; cursor: pointer; display: block; margin: 10px auto; font-weight: bold; width: 80%; }
+        .btn-test { background-color: #555; } /* Test butonu gri */
+        .tweet { border-bottom: 1px solid #eee; padding: 15px 0; }
+        .author { font-weight: bold; color: #a90432; }
     </style>
 </head>
 <body>
-
 <div class="container">
     <img src="https://upload.wikimedia.org/wikipedia/commons/f/f6/Galatasaray_Sports_Club_Logo.png" alt="GS Logo" class="logo">
     <h1>GS Haber Radar</h1>
-    <p class="subtitle">Güvenilir Muhabirler - Anlık Akış</p>
-    <!-- Butona tıklandığında artık ekrana yazı fırlamayacak -->
     <button id="bildirimBtn" onclick="bildirimIzniIste()">Anlık Bildirimleri Aç</button>
+    <button class="btn-test" onclick="testHaberiniTetikle()">Test Haberi Gönder 🦁</button>
     <div id="haberAkisi"></div>
 </div>
 
-<!-- Daha güvenilir bir sunucudan çekilen kükreme sesi -->
-<audio id="bildirimSesi" src="https://assets.mixkit.co/active_storage/sfx/86/86-preview.mp3" preload="auto"></audio>
+<!-- Daha tok ve gerçekçi bir Aslan Kükremesi -->
+<audio id="bildirimSesi" src="https://www.soundboard.com/track/download/123062" preload="auto"></audio>
 
 <script>
     const socket = io();
-    const haberAkisi = document.getElementById('haberAkisi');
-    const bildirimSesi = document.getElementById('bildirimSesi'); 
-    const bildirimBtn = document.getElementById('bildirimBtn');
-    
-    bildirimSesi.volume = 1.0;
+    const bildirimSesi = document.getElementById('bildirimSesi');
 
-    // Telefon ekranı açıldığında izin zaten varsa butonu direkt yeşil yap
-    if (Notification.permission === "granted") {
-        bildirimBtn.innerText = "Bildirimler Aktif 🦁";
-        bildirimBtn.classList.add("btn-aktif");
+    // Test Butonu: Sistemin çalışıp çalışmadığını anında görmeni sağlar
+    function testHaberiniTetikle() {
+        const testHaberi = {
+            muhabir: "Test Muhabiri",
+            kullanici_adi: "@GS_Radar_Test",
+            mesaj: "🦁 ASLAN KÜKREDİ! Sistem şu an kusursuz çalışıyor, gerçek haber düştüğü an bildirim alacaksın.",
+            saat: new Date().toLocaleTimeString('tr-TR')
+        };
+        ekranaHaberBas(testHaberi);
     }
 
-    socket.on('yeni_haber', (haber) => {
-        const haberHTML = `
-            <div class="tweet">
-                <div class="tweet-header">
-                    <span class="author">${haber.muhabir} <span class="username">${haber.kullanici_adi}</span></span>
-                    <span class="time">${haber.saat}</span>
-                </div>
-                <div class="content">${haber.mesaj}</div>
-            </div>
-        `;
-        haberAkisi.insertAdjacentHTML('afterbegin', haberHTML);
-        
+    function ekranaHaberBas(haber) {
+        const haberHTML = `<div class="tweet"><div class="author">${haber.muhabir} ${haber.kullanici_adi}</div><div>${haber.mesaj}</div><small>${haber.saat}</small></div>`;
+        document.getElementById('haberAkisi').insertAdjacentHTML('afterbegin', haberHTML);
         if (Notification.permission === 'granted') {
-            new Notification('Yeni GS Haberi - ' + haber.muhabir, { 
-                body: haber.mesaj,
-                icon: 'https://upload.wikimedia.org/wikipedia/commons/f/f6/Galatasaray_Sports_Club_Logo.png' 
-            });
-            
-            // Haberi aldığı an kükremeyi çal
-            bildirimSesi.play().catch(e => console.log("Ses çalınamadı."));
+            new Notification('Yeni GS Haberi', { body: haber.mesaj });
+            bildirimSesi.play();
         }
-    });
+    }
+
+    socket.on('yeni_haber', (haber) => { ekranaHaberBas(haber); });
 
     function bildirimIzniIste() {
-        if (!("Notification" in window)) return;
-        
-        // İzin zaten varsa veya yeni verildiyse uyarı verme, direkt butonu yeşil yap ve sesi çal
-        if (Notification.permission === "granted") {
-            bildirimSesi.play();
-            bildirimBtn.innerText = "Bildirimler Aktif 🦁";
-            bildirimBtn.classList.add("btn-aktif");
-        }
-        else if (Notification.permission !== "denied") {
-            Notification.requestPermission().then((permission) => {
-                if (permission === "granted") {
-                    bildirimSesi.play();
-                    bildirimBtn.innerText = "Bildirimler Aktif 🦁";
-                    bildirimBtn.classList.add("btn-aktif");
-                }
-            });
+        if (Notification.permission !== "granted") {
+            Notification.requestPermission().then(p => { if(p === "granted") alert("İzin verildi!"); });
         }
     }
 </script>
