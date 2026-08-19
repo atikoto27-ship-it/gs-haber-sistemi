@@ -2,63 +2,51 @@
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GS Anlık Haber Merkezi</title>
     <script src="/socket.io/socket.io.js"></script>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f7f9f9; margin: 0; padding: 20px; }
-        .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 12px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); border-top: 5px solid #a90432; }
-        .logo { width: 85px; display: block; margin: 0 auto 10px auto; }
-        h1 { color: #a90432; text-align: center; margin-bottom: 5px; margin-top: 0; }
-        button { background-color: #a90432; color: white; border: none; padding: 12px 20px; border-radius: 20px; cursor: pointer; display: block; margin: 10px auto; font-weight: bold; width: 80%; }
-        .btn-test { background-color: #555; } /* Test butonu gri */
-        .tweet { border-bottom: 1px solid #eee; padding: 15px 0; }
-        .author { font-weight: bold; color: #a90432; }
+        body { font-family: sans-serif; background: #f7f9f9; padding: 20px; }
+        .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 12px; padding: 20px; text-align: center; }
+        button { background: #a90432; color: white; border: none; padding: 15px; border-radius: 20px; cursor: pointer; width: 100%; font-weight: bold; margin-top: 10px; }
     </style>
 </head>
 <body>
 <div class="container">
-    <img src="https://upload.wikimedia.org/wikipedia/commons/f/f6/Galatasaray_Sports_Club_Logo.png" alt="GS Logo" class="logo">
+    <img src="https://upload.wikimedia.org/wikipedia/commons/f/f6/Galatasaray_Sports_Club_Logo.png" style="width:80px;">
     <h1>GS Haber Radar</h1>
-    <button id="bildirimBtn" onclick="bildirimIzniIste()">Anlık Bildirimleri Aç</button>
-    <button class="btn-test" onclick="testHaberiniTetikle()">Test Haberi Gönder 🦁</button>
+    <button id="bildirimBtn" onclick="aktiveEt()">Sistemi ve Sesi Aktif Et 🦁</button>
     <div id="haberAkisi"></div>
 </div>
 
-<!-- Daha tok ve gerçekçi bir Aslan Kükremesi -->
-<audio id="bildirimSesi" src="https://www.soundboard.com/track/download/123062" preload="auto"></audio>
-
 <script>
     const socket = io();
-    const bildirimSesi = document.getElementById('bildirimSesi');
+    // Tarayıcının engellememesi için sesi butona basınca hazırlıyoruz
+    const kükreme = new Audio('https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3'); // Örnek ses
+    // NOT: Gerçek aslan sesi için profesyonel bir sunucudan çekiyoruz:
+    const aslanSesi = new Audio('https://actions.google.com/sounds/v1/animals/lion_roar.ogg');
 
-    // Test Butonu: Sistemin çalışıp çalışmadığını anında görmeni sağlar
-    function testHaberiniTetikle() {
-        const testHaberi = {
-            muhabir: "Test Muhabiri",
-            kullanici_adi: "@GS_Radar_Test",
-            mesaj: "🦁 ASLAN KÜKREDİ! Sistem şu an kusursuz çalışıyor, gerçek haber düştüğü an bildirim alacaksın.",
-            saat: new Date().toLocaleTimeString('tr-TR')
-        };
-        ekranaHaberBas(testHaberi);
+    function aktiveEt() {
+        // İzinleri iste
+        Notification.requestPermission();
+        // Sesi bir kez çal-durdur yaparak "hazırla"
+        aslanSesi.play().then(() => {
+            aslanSesi.pause();
+            aslanSesi.currentTime = 0;
+            alert("🦁 Kükreme sesi hazırlandı! Gerçek haberlerde otomatik çalacak.");
+        });
     }
 
-    function ekranaHaberBas(haber) {
-        const haberHTML = `<div class="tweet"><div class="author">${haber.muhabir} ${haber.kullanici_adi}</div><div>${haber.mesaj}</div><small>${haber.saat}</small></div>`;
-        document.getElementById('haberAkisi').insertAdjacentHTML('afterbegin', haberHTML);
+    socket.on('yeni_haber', (haber) => {
+        // Haberi ekle
+        document.getElementById('haberAkisi').insertAdjacentHTML('afterbegin', `<div><b>${haber.muhabir}:</b> ${haber.mesaj}</div><hr>`);
+        
+        // Aslanı kükret!
+        aslanSesi.play().catch(e => console.log("Hata:", e));
+        
         if (Notification.permission === 'granted') {
-            new Notification('Yeni GS Haberi', { body: haber.mesaj });
-            bildirimSesi.play();
+            new Notification('YENİ HABER', { body: haber.mesaj });
         }
-    }
-
-    socket.on('yeni_haber', (haber) => { ekranaHaberBas(haber); });
-
-    function bildirimIzniIste() {
-        if (Notification.permission !== "granted") {
-            Notification.requestPermission().then(p => { if(p === "granted") alert("İzin verildi!"); });
-        }
-    }
+    });
 </script>
 </body>
 </html>
