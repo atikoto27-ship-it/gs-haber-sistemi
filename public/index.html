@@ -8,29 +8,39 @@
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f7f9f9; margin: 0; padding: 20px; }
         .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 12px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); border-top: 5px solid #a90432; }
-        h1 { color: #a90432; text-align: center; margin-bottom: 5px; }
+        .logo { width: 85px; display: block; margin: 0 auto 10px auto; }
+        h1 { color: #a90432; text-align: center; margin-bottom: 5px; margin-top: 0; }
         p.subtitle { text-align: center; color: #fdb912; font-weight: bold; margin-top: 0; }
         .tweet { border-bottom: 1px solid #eee; padding: 15px 0; animation: fadeIn 0.5s ease-in; }
+        .tweet:first-child { border-top: 1px solid #eee; }
         .tweet-header { display: flex; justify-content: space-between; margin-bottom: 8px; }
         .author { font-weight: bold; color: #0f1419; }
         .username, .time { color: #536471; font-size: 0.9em; }
         .content { color: #0f1419; font-size: 1.1em; line-height: 1.4; }
         @keyframes fadeIn { from { background-color: #fff9e6; opacity: 0; transform: translateY(-10px); } to { background-color: transparent; opacity: 1; transform: translateY(0); } }
-        button { background-color: #a90432; color: white; border: none; padding: 10px 15px; border-radius: 20px; cursor: pointer; display: block; margin: 0 auto 20px auto; font-weight: bold; }
+        button { background-color: #a90432; color: white; border: none; padding: 10px 15px; border-radius: 20px; cursor: pointer; display: block; margin: 0 auto 20px auto; font-weight: bold; transition: 0.2s; }
+        button:hover { background-color: #8a0329; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>🦁 GS Haber Radar</h1>
+    <!-- Logomuz Buraya Eklendi -->
+    <img src="https://upload.wikimedia.org/wikipedia/commons/f/f6/Galatasaray_Sports_Club_Logo.png" alt="GS Logo" class="logo">
+    
+    <h1>GS Haber Radar</h1>
     <p class="subtitle">Güvenilir Muhabirler - Anlık Akış</p>
     <button id="bildirimBtn" onclick="bildirimIzniIste()">Anlık Bildirimleri Aç</button>
     <div id="haberAkisi"></div>
 </div>
 
+<!-- Bildirim Sesi Eklendi (Kısa bir 'ding' sesi) -->
+<audio id="bildirimSesi" src="https://actions.google.com/sounds/v1/alarms/digital_watch_alarm_long.ogg" preload="auto"></audio>
+
 <script>
     const socket = io();
     const haberAkisi = document.getElementById('haberAkisi');
+    const bildirimSesi = document.getElementById('bildirimSesi'); // Sesi bağladık
 
     socket.on('yeni_haber', (haber) => {
         const haberHTML = `
@@ -45,16 +55,28 @@
         haberAkisi.insertAdjacentHTML('afterbegin', haberHTML);
         
         if (Notification.permission === 'granted') {
-            new Notification('Yeni GS Haberi - ' + haber.muhabir, { body: haber.mesaj });
+            // Ekrana bildirim kartı düşür
+            new Notification('Yeni GS Haberi - ' + haber.muhabir, { 
+                body: haber.mesaj,
+                icon: 'https://upload.wikimedia.org/wikipedia/commons/f/f6/Galatasaray_Sports_Club_Logo.png' 
+            });
+            // Sesi çal
+            bildirimSesi.play().catch(e => console.log("Ses çalınamadı."));
         }
     });
 
     function bildirimIzniIste() {
         if (!("Notification" in window)) alert("Tarayıcınız bildirimleri desteklemiyor.");
-        else if (Notification.permission === "granted") alert("Bildirimler zaten açık!");
+        else if (Notification.permission === "granted") {
+            alert("Bildirimler açık! Test için bildirim sesi çalınıyor...");
+            bildirimSesi.play(); // Test sesi çal
+        }
         else if (Notification.permission !== "denied") {
             Notification.requestPermission().then((permission) => {
-                if (permission === "granted") alert("Harika! Artık bildirim alacaksın.");
+                if (permission === "granted") {
+                    alert("Harika! Artık haberlerde bildirim sesi duyacaksın.");
+                    bildirimSesi.play();
+                }
             });
         }
     }
