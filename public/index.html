@@ -25,22 +25,22 @@
 <body>
 
 <div class="container">
-    <!-- Logomuz Buraya Eklendi -->
     <img src="https://upload.wikimedia.org/wikipedia/commons/f/f6/Galatasaray_Sports_Club_Logo.png" alt="GS Logo" class="logo">
-    
     <h1>GS Haber Radar</h1>
     <p class="subtitle">Güvenilir Muhabirler - Anlık Akış</p>
     <button id="bildirimBtn" onclick="bildirimIzniIste()">Anlık Bildirimleri Aç</button>
     <div id="haberAkisi"></div>
 </div>
 
-<!-- Bildirim Sesi Eklendi (Kısa bir 'ding' sesi) -->
-<audio id="bildirimSesi" src="https://actions.google.com/sounds/v1/alarms/digital_watch_alarm_long.ogg" preload="auto"></audio>
+<!-- Aslan Kükremesi Sesi -->
+<audio id="bildirimSesi" src="https://cdn.pixabay.com/audio/2022/03/10/audio_lion-roar.mp3" preload="auto"></audio>
 
 <script>
     const socket = io();
     const haberAkisi = document.getElementById('haberAkisi');
-    const bildirimSesi = document.getElementById('bildirimSesi'); // Sesi bağladık
+    const bildirimSesi = document.getElementById('bildirimSesi'); 
+    
+    bildirimSesi.volume = 1.0; // Sesi en yükseğe al
 
     socket.on('yeni_haber', (haber) => {
         const haberHTML = `
@@ -55,29 +55,40 @@
         haberAkisi.insertAdjacentHTML('afterbegin', haberHTML);
         
         if (Notification.permission === 'granted') {
-            // Ekrana bildirim kartı düşür
             new Notification('Yeni GS Haberi - ' + haber.muhabir, { 
                 body: haber.mesaj,
                 icon: 'https://upload.wikimedia.org/wikipedia/commons/f/f6/Galatasaray_Sports_Club_Logo.png' 
             });
-            // Sesi çal
-            bildirimSesi.play().catch(e => console.log("Ses çalınamadı."));
+            
+            // Haberi aldığı an kükremeyi çal
+            bildirimSesi.play().catch(e => console.log("Tarayıcı sesi otomatik çalmayı engelledi."));
         }
     });
 
     function bildirimIzniIste() {
-        if (!("Notification" in window)) alert("Tarayıcınız bildirimleri desteklemiyor.");
+        // Android cihazlarda sessiz bloklamayı aşmak için butona basılınca sesi tetikliyoruz
+        bildirimSesi.play().then(() => {
+            bildirimSesi.pause();
+            bildirimSesi.currentTime = 0;
+        }).catch(e => {});
+
+        if (!("Notification" in window)) {
+            alert("Tarayıcınız bildirimleri desteklemiyor.");
+        }
         else if (Notification.permission === "granted") {
-            alert("Bildirimler açık! Test için bildirim sesi çalınıyor...");
-            bildirimSesi.play(); // Test sesi çal
+            alert("Bildirimler açık! Test kükremesi çalınıyor...");
+            bildirimSesi.play();
         }
         else if (Notification.permission !== "denied") {
             Notification.requestPermission().then((permission) => {
                 if (permission === "granted") {
-                    alert("Harika! Artık haberlerde bildirim sesi duyacaksın.");
+                    alert("Harika! Artık haberlerde aslan kükremesi duyacaksın.");
                     bildirimSesi.play();
                 }
             });
+        }
+        else if (Notification.permission === "denied") {
+            alert("Bildirimleri tarayıcı ayarlarından engellemişsiniz. Lütfen adres çubuğundaki kilit simgesine tıklayıp 'Bildirimler' ve 'Ses' izinlerini açın.");
         }
     }
 </script>
