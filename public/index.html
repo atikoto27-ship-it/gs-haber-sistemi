@@ -18,8 +18,10 @@
         .username, .time { color: #536471; font-size: 0.9em; }
         .content { color: #0f1419; font-size: 1.1em; line-height: 1.4; }
         @keyframes fadeIn { from { background-color: #fff9e6; opacity: 0; transform: translateY(-10px); } to { background-color: transparent; opacity: 1; transform: translateY(0); } }
-        button { background-color: #a90432; color: white; border: none; padding: 10px 15px; border-radius: 20px; cursor: pointer; display: block; margin: 0 auto 20px auto; font-weight: bold; transition: 0.2s; }
+        button { background-color: #a90432; color: white; border: none; padding: 10px 15px; border-radius: 20px; cursor: pointer; display: block; margin: 0 auto 20px auto; font-weight: bold; transition: 0.3s; }
         button:hover { background-color: #8a0329; }
+        /* Aktif olduğunda butonun bürüneceği yeşil renk */
+        .btn-aktif { background-color: #2e7d32 !important; } 
     </style>
 </head>
 <body>
@@ -28,19 +30,27 @@
     <img src="https://upload.wikimedia.org/wikipedia/commons/f/f6/Galatasaray_Sports_Club_Logo.png" alt="GS Logo" class="logo">
     <h1>GS Haber Radar</h1>
     <p class="subtitle">Güvenilir Muhabirler - Anlık Akış</p>
+    <!-- Butona tıklandığında artık ekrana yazı fırlamayacak -->
     <button id="bildirimBtn" onclick="bildirimIzniIste()">Anlık Bildirimleri Aç</button>
     <div id="haberAkisi"></div>
 </div>
 
-<!-- Aslan Kükremesi Sesi -->
-<audio id="bildirimSesi" src="https://cdn.pixabay.com/audio/2022/03/10/audio_lion-roar.mp3" preload="auto"></audio>
+<!-- Daha güvenilir bir sunucudan çekilen kükreme sesi -->
+<audio id="bildirimSesi" src="https://assets.mixkit.co/active_storage/sfx/86/86-preview.mp3" preload="auto"></audio>
 
 <script>
     const socket = io();
     const haberAkisi = document.getElementById('haberAkisi');
     const bildirimSesi = document.getElementById('bildirimSesi'); 
+    const bildirimBtn = document.getElementById('bildirimBtn');
     
-    bildirimSesi.volume = 1.0; // Sesi en yükseğe al
+    bildirimSesi.volume = 1.0;
+
+    // Telefon ekranı açıldığında izin zaten varsa butonu direkt yeşil yap
+    if (Notification.permission === "granted") {
+        bildirimBtn.innerText = "Bildirimler Aktif 🦁";
+        bildirimBtn.classList.add("btn-aktif");
+    }
 
     socket.on('yeni_haber', (haber) => {
         const haberHTML = `
@@ -61,34 +71,27 @@
             });
             
             // Haberi aldığı an kükremeyi çal
-            bildirimSesi.play().catch(e => console.log("Tarayıcı sesi otomatik çalmayı engelledi."));
+            bildirimSesi.play().catch(e => console.log("Ses çalınamadı."));
         }
     });
 
     function bildirimIzniIste() {
-        // Android cihazlarda sessiz bloklamayı aşmak için butona basılınca sesi tetikliyoruz
-        bildirimSesi.play().then(() => {
-            bildirimSesi.pause();
-            bildirimSesi.currentTime = 0;
-        }).catch(e => {});
-
-        if (!("Notification" in window)) {
-            alert("Tarayıcınız bildirimleri desteklemiyor.");
-        }
-        else if (Notification.permission === "granted") {
-            alert("Bildirimler açık! Test kükremesi çalınıyor...");
+        if (!("Notification" in window)) return;
+        
+        // İzin zaten varsa veya yeni verildiyse uyarı verme, direkt butonu yeşil yap ve sesi çal
+        if (Notification.permission === "granted") {
             bildirimSesi.play();
+            bildirimBtn.innerText = "Bildirimler Aktif 🦁";
+            bildirimBtn.classList.add("btn-aktif");
         }
         else if (Notification.permission !== "denied") {
             Notification.requestPermission().then((permission) => {
                 if (permission === "granted") {
-                    alert("Harika! Artık haberlerde aslan kükremesi duyacaksın.");
                     bildirimSesi.play();
+                    bildirimBtn.innerText = "Bildirimler Aktif 🦁";
+                    bildirimBtn.classList.add("btn-aktif");
                 }
             });
-        }
-        else if (Notification.permission === "denied") {
-            alert("Bildirimleri tarayıcı ayarlarından engellemişsiniz. Lütfen adres çubuğundaki kilit simgesine tıklayıp 'Bildirimler' ve 'Ses' izinlerini açın.");
         }
     }
 </script>
